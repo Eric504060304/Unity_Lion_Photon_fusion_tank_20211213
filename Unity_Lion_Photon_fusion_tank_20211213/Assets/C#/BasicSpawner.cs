@@ -20,6 +20,10 @@ namespace Eric
         public NetworkPrefabRef goPlayer;
         [Header("畫布連線")]
         public GameObject goCanvas;
+        [Header("版本文字")]
+        public Text textVersion;
+        public Transform[] traSpawnPoints;
+
         /// <summary>
         /// 玩家輸入的房間名稱
         /// </summary>
@@ -28,6 +32,16 @@ namespace Eric
         /// 連線執行器
         /// </summary>
         private NetworkRunner runner;
+        private string stringVersion = "Eric Copyright 2021. | Version";
+        #endregion
+
+        #region 事件
+
+        void Awake()
+        {
+            textVersion.text = stringVersion + Application.version;
+        }
+        
         #endregion
 
         #region 方法
@@ -101,16 +115,33 @@ namespace Eric
         {
 
         }
-
+        /// <summary>
+        /// 玩家連線輸入行為
+        /// </summary>
+        /// <param name="runner">連線執行器</param>
+        /// <param name="input">輸入資訊</param>
         public void OnInput(NetworkRunner runner, NetworkInput input)
         {
+            NetworkInputData inputData = new NetworkInputData();                        //新增 連線輸入資料 結構
+            #region 自行輸入案件與移動資訊
+            if (Input.GetKey(KeyCode.W)) inputData.direction += Vector3.forward;        //  W 前
+            if (Input.GetKey(KeyCode.S)) inputData.direction += Vector3.back;           //  S 後
+            if (Input.GetKey(KeyCode.A)) inputData.direction += Vector3.left;           //  A 左
+            if (Input.GetKey(KeyCode.D)) inputData.direction += Vector3.right;          //  D 右
 
+            inputData.inputFire = Input.GetKey(KeyCode.Mouse0);
         }
 
         public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
         {
 
         }
+
+        /// <summary>
+        /// 玩家資料集合：玩家參考資訊，玩家連線物件
+        /// </summary>
+        private Dictionary<PlayerRef, NetworkObject> players = new Dictionary<PlayerRef, NetworkObject>();
+
         /// <summary>
         /// 當玩家成功加入房間後
         /// </summary>
@@ -118,12 +149,26 @@ namespace Eric
         /// <param name="player"></param>
         public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
         {
-            runner.Spawn(goPlayer, new Vector3(-5, 0, -10), Quaternion.identity, player);
-        }
+            //隨機生成點 = Unity 的隨機範圍(0,生成位置數量)
+            int randomSpawnPoint = UnityEngine.Random.Range(0, traSpawnPoints.Length);
+            //連線執行器.生成(物件,座標,角度,玩家資訊
+            NetworkObject playerNetworkObject = runner.Spawn(goPlayer, traSpawnPoints[randomSpawnPoint].position, Quaternion.identity, player);
+            players.Add(player, playerNetworkObject);
 
+        }
+        /// <summary>
+        /// 當玩家離開房間後
+        /// </summary>
+        /// <param name="runner"></param>
+        /// <param name="player"></param>
         public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
         {
-
+            //如果 離開的玩家連線物件 存在 就刪除
+            if(players.TryGetValue(player,out NetworkObject playerNetworkObject))
+            {
+                runner.Despawn(playerNetworkObject);                //連線執行器,取消生成(該玩家連線物件移除)
+                players.Remove(player);                             //玩家集合,移除(該玩家)
+            }
         }
 
         public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ArraySegment<byte> data)
@@ -156,7 +201,7 @@ namespace Eric
 
         }
         #endregion
-
+        #endregion
     }
 }
 
