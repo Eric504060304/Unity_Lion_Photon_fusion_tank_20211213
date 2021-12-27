@@ -123,6 +123,7 @@ namespace Eric
         public void OnInput(NetworkRunner runner, NetworkInput input)
         {
             NetworkInputData inputData = new NetworkInputData();                        //新增 連線輸入資料 結構
+
             #region 自行輸入案件與移動資訊
             if (Input.GetKey(KeyCode.W)) inputData.direction += Vector3.forward;        //  W 前
             if (Input.GetKey(KeyCode.S)) inputData.direction += Vector3.back;           //  S 後
@@ -130,6 +131,16 @@ namespace Eric
             if (Input.GetKey(KeyCode.D)) inputData.direction += Vector3.right;          //  D 右
 
             inputData.inputFire = Input.GetKey(KeyCode.Mouse0);
+            #endregion
+
+            #region 滑鼠座標處理
+            inputData.postionMouse = Input.mousePosition;                                       //取得 滑鼠座標
+            inputData.postionMouse.z = 60;                                                      //設定 滑鼠座標Z軸 - 可以打到3D物件，大於攝影機
+
+            Vector3 mouseToWorld = Camera.main.ScreenToWorldPoint(inputData.postionMouse);   //透過 API 將滑鼠轉為世界座標
+            inputData.postionMouse = mouseToWorld;                                              //儲存轉換後的滑鼠座標
+            #endregion  
+            input.Set(inputData);
         }
 
         public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
@@ -200,7 +211,8 @@ namespace Eric
         {
 
         }
-        #endregion
+        
+
         #endregion
     }
 }
